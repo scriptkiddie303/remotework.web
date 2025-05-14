@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+<title>About Us — Elearning Complex</title>
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/about-us.css' %}">
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/about-us.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<main>
+
+    <!-- Section: Intro -->
+    <section class="about-hero">
+        <div class="about-text">
+            <h1>Our Mission</h1>
+            <p>
+                At Elearning Complex, we aim to provide Muslims with powerful knowledge in both Quranic education and
+                essential tech skills. We believe the future belongs to those who master both tradition and technology.
+            </p>
+        </div>
+    </section>
+
+    <!-- Section: Welcome Message -->
+    <section class="about-welcome">
+        <div class="welcome-container">
+            <h2>Welcome to Elearning Complex</h2>
+            <p>
+                We're dedicated to delivering high-quality Quranic education in a modern, online environment. With
+                technology shaping today's world, we also offer tech-focused learning paths. Subject tuitions like Math,
+                Physics, and Biology are offered as financial support allows.
+            </p>
+            <div class="welcome-image">
+                <img src="{% static 'images/about-placeholder.jpeg' %}" alt="Elearning Image Placeholder">
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Team Carousel -->
+    <section class="team-section">
+        <h2>Meet Our Team & Founder</h2>
+        <div class="carousel-container">
+            <button class="carousel-btn left">&#10094;</button>
+            <div class="carousel-track">
+                <!-- Example Card -->
+                <div class="team-card" data-modal="team1">
+                    <img src="{% static 'images/team1.jpg' %}" alt="Team Member 1">
+                    <p>Ustadh Ahmad</p>
+                </div>
+                <div class="team-card" data-modal="team2">
+                    <img src="{% static 'images/founder.jpg' %}" alt="Founder">
+                    <p>Founder - Fatima Noor</p>
+                </div>
+                <!-- Add more cards as needed -->
+            </div>
+            <button class="carousel-btn right">&#10095;</button>
+        </div>
+
+        <!-- Modals -->
+        <div class="modal" id="team1">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Ustadh Ahmad</h3>
+                <p>Lead Quran Instructor with over 10 years of experience in teaching Tajweed and Tafsir.</p>
+            </div>
+        </div>
+        <div class="modal" id="team2">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Fatima Noor</h3>
+                <p>Founder of Elearning Complex, passionate about merging Islamic education with modern skills.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Icon Cards -->
+    <section class="icon-cards">
+        <h2>What We Offer</h2>
+        <div class="cards-container">
+            <div class="card">
+                <img src="{% static 'icons/quran.svg' %}" alt="Quran">
+                <h3>Quranic Education</h3>
+                <p>From basic recitation to advanced Tafsir, accessible from anywhere.</p>
+            </div>
+            <div class="card">
+                <img src="{% static 'icons/tech.svg' %}" alt="Tech Learning">
+                <h3>Tech Learning</h3>
+                <p>Programming, cybersecurity, and digital literacy for all ages.</p>
+            </div>
+            <div class="card">
+                <img src="{% static 'icons/subjects.svg' %}" alt="Subjects">
+                <h3>Subject Tuitions</h3>
+                <p>Support for Math, Physics, Biology, and more — online and effective.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Colored Section -->
+    <section class="colored-message">
+        <p>Empowering our youth with both the light of the Quran and the tools of the future.</p>
+    </section>
+
+</main>
+{% endblock %}
