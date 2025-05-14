@@ -1,0 +1,128 @@
+/* Base */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+header {
+    background-color: var(--bg-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 2rem;
+    flex-wrap: wrap;
+}
+
+#logo a {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+#nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    list-style: none;
+}
+
+#nav-links li a {
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 0.5rem 0.8rem;
+    transition: 0.3s;
+}
+
+#nav-links li a:hover {
+    color: #669bbc;
+}
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-content {
+    position: absolute;
+    background-color: var(--bg-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: none;
+    flex-direction: column;
+    top: 100%;
+    left: 0;
+    min-width: 180px;
+    z-index: 10;
+    border-radius: 4px;
+}
+
+.dropdown:hover .dropdown-content {
+    display: flex;
+}
+
+.dropdown-content a {
+    padding: 0.6rem 1rem;
+    white-space: nowrap;
+}
+
+.dropdown-sub {
+    position: relative;
+}
+
+.dropdown-sub:hover .dropdown-content.right {
+    display: flex;
+    left: 100%;
+    top: 0;
+}
+
+/* Mode Toggle */
+#mode-toggle {
+    font-size: 1.2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+/* Burger menu for mobile */
+#burger {
+    display: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+}
+
+/* Light/Dark Mode */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #003049;
+}
+
+body.dark-mode {
+    --bg-color: #003049;
+    --text-color: #ffffff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #nav-links {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        background-color: var(--bg-color);
+        padding: 1rem;
+    }
+
+    #nav-links.show {
+        display: flex;
+    }
+
+    #burger {
+        display: block;
+    }
+}

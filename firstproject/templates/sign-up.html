@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Signup Form</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #121212;
+            font-family: sans-serif;
+        }
+
+        .form-box {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .form-box h2 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: #2b2b2b;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 15px;
+            transition: 0.3s ease;
+        }
+
+        .form-group label {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            color: #aaa;
+            font-size: 14px;
+            pointer-events: none;
+            transition: 0.3s ease;
+        }
+
+        .form-group input:focus+label,
+        .form-group input:not(:placeholder-shown)+label {
+            top: -10px;
+            left: 8px;
+            background: #1e1e1e;
+            padding: 0 5px;
+            color: #3ef8a0;
+            font-size: 12px;
+        }
+
+        .form-group .eye {
+            position: absolute;
+            right: 10px;
+            top: 12px;
+            cursor: pointer;
+            color: #aaa;
+            transition: 0.3s ease;
+        }
+
+        .form-group.torch input {
+            box-shadow: 0 0 20px 5px rgba(62, 248, 160, 0.4);
+            background-color: #444;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #3ef8a0;
+            color: #000;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        button:hover {
+            background: #32d991;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="form-box">
+        <h2>Sign Up</h2>
+        <form method="post">
+            {% csrf_token %}
+            {%if messages%}
+            {% for message in messages %}
+            <div class="alert alert-danger">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            <br>
+            <div class="form-group">
+                <input type="email" id="email" name="email" required placeholder=" ">
+                <label for="email">Email</label>
+            </div>
+            <div class="form-group">
+                <input type="text" id="name" name="name" required placeholder=" ">
+                <label for="name">Name</label>
+            </div>
+            <div class="form-group" id="pass-group">
+                <input type="password" id="password" name="password" required placeholder=" ">
+                <label for="password">Password</label>
+                <span class="eye" onclick="togglePass(this, 'password', 'pass-group')">👁️</span>
+            </div>
+            <div class="form-group" id="cpass-group">
+                <input type="password" id="cpassword" name="confirm_password" required placeholder=" ">
+                <label for="cpassword">Confirm Password</label>
+                <span class="eye" onclick="togglePass(this, 'cpassword', 'cpass-group')">👁️</span>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+    </div>
+
+    <script>
+        function togglePass(icon, id, groupId) {
+            const input = document.getElementById(id);
+            const group = document.getElementById(groupId);
+
+            if (input.type === "password") {
+                input.type = "text";
+                group.classList.add("torch");
+            } else {
+                input.type = "password";
+                group.classList.remove("torch");
+            }
+        }
+    </script>
+</body>
+
+</html>
