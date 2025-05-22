@@ -34,7 +34,7 @@
                 <li class="navlists"> <a class="anav" href="{% url 'home'%}">Home</a></li>
                 <li class="navlists"> <a class="anav" href="{%url 'about-us'%}">About Us</a></li>
                 <li class="navlists"> <a class="anav" href="#">Why Us</a></li>
-                <li class="navlists"> <a class="anav" href="#">Services</a></li>
+                <li class="navlists"> <a class="anav" href="{% url 'courses' %}">Services</a></li>
                 <li class="navlists"> <a class="anav" href="#">Contact Us</a></li>
             </ul>
 
@@ -57,12 +57,14 @@
                     {% endfor %}
                     {% endif %}
                 </div>
-                <a class="auth-btn" id="login-btn" href="{% url 'login' %}">Logout</a>
+                <a class="auth-btn" id="login-btn" href="{% url 'logout' %}">Logout</a>
+                <div class="welcome">
+                    <p style=" padding-left: 30px; padding-top: 20px; color: aliceblue;" id="welcome-message"
+                        style="display: none;">Welcome,
+                        {{user.username }}
+                    </p>
 
-                <p style="color: aliceblue;" id="welcome-message" style="display: none;">Welcome, {{ user.name }}
-                </p>
-
-
+                </div>
                 <script>
                     // Wait 1 second, then switch to welcome message
                     setTimeout(function () {
@@ -72,7 +74,7 @@
                 </script>
                 {% else %}
                 <a class="auth-btn" id="login-btn" href="{% url 'login' %}">Login</a>
-                <a class="auth-btn" id="signup-btn" href="{% url 'sign-up' %}">Sign Up</a>
+                <a class="auth-btn" id="signup-btn" href="{% url 'chooseRole' %}">Sign Up</a>
                 {% endif %}
 
 

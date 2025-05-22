@@ -218,6 +218,9 @@ body.light-theme .navlists:hover {
     background-color: #415a77;
 }
 
+body.light-theme .welcome p {
+    color: #000;
+}
 
 
 /* Responsive Styles */
