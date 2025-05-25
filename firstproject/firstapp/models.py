@@ -36,18 +36,18 @@ class Teacher(models.Model):
     experience_years = models.IntegerField(default=0)
     linkedin_url = models.URLField(blank=True, null=True)
     specializations = models.CharField(max_length=200, blank=True)
-    address = models.TextField()
+    address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return self.name
-    def clean(self):
-        if not self.cv:
-            raise ValidationError('CV is required for teacher profile.')
-        if self.experience_years < 0:
+    # def clean(self):
+    #     if not self.cv:
+    #         raise ValidationError('CV is required for teacher profile.')
+    #     if self.experience_years < 0:
 
-            raise ValidationError('Experience years cannot be negative.')
-        if not self.linkedin_url.startswith('https://www.linkedin.com/'):
-            raise ValidationError('Invalid LinkedIn URL. It should start with "https://www.linkedin.com/".')
+    #         raise ValidationError('Experience years cannot be negative.')
+    #     if not self.linkedin_url.startswith('https://www.linkedin.com/'):
+    #         raise ValidationError('Invalid LinkedIn URL. It should start with "https://www.linkedin.com/".')
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)

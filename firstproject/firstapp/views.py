@@ -17,6 +17,13 @@ import dns.resolver
 # Create your views here.
 from django.utils import timezone
 
+import random
+import datetime
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.shortcuts import redirect
+from django.contrib import messages
+
 def has_mx_record(domain):
     try:
         records = dns.resolver.resolve(domain, 'MX')
@@ -25,6 +32,7 @@ def has_mx_record(domain):
         return False
 
 def home(request):
+
     return render(request, "index.html")
 
 def about_us(request):
@@ -56,11 +64,9 @@ def signup(request):
             messages.error(request, "Email already in use.")
             return redirect("/sign-up")
 
-        # ✅ Generate OTP
         import random
-        otp = random.randint(100000, 999999)
+        otp = str(random.randint(100000, 999999))
 
-        # ✅ Store all user data + OTP in session
         request.session["signup_data"] = {
             "username": username,
             "password": password,
@@ -71,7 +77,6 @@ def signup(request):
         request.session['otp'] = otp
         request.session['otp_expiry'] = (timezone.now() + datetime.timedelta(minutes=5)).isoformat()
         request.session['otp_attempts'] = 0
-        # ✅ Send OTP to email
         from django.core.mail import send_mail
         send_mail(
             "Your OTP Code",
@@ -116,16 +121,22 @@ def verify_otp(request):
             elif data['role'] == "teacher":
                 teacher = Teacher.objects.create(profile=profile)
                 teacher.save()
-            # Send welcome email
+                admin=User.objects.get(username='admin')
+                send_mail(
+                    "New Teacher Application",
+                    f"New teacher {data['username']} has Applied as teacher in Your site.",
+                    from_email="noreply@gmail.com",
+                    recipient_list=[admin.email],
+                    fail_silently=False,
+                )            # Send welcome email
             send_mail(
                 "Welcome to our platform",
                 "Thank you for signing up!",
-        from_email="noreply@yourdomain.com",
-        recipient_list=[data['email']],
-
-        fail_silently=False,
-    )            # Clear session
-            for key in ['temp_user', 'otp', 'otp_expiry', 'otp_attempts']:
+                from_email="noreply@yourdomain.com",
+                recipient_list=[data['email']],
+                fail_silently=False,
+                )            # Clear session
+            for key in [ 'otp', 'otp_expiry', 'otp_attempts']:
                 if key in request.session:
                     del request.session[key]
             del request.session["signup_data"]
@@ -136,18 +147,13 @@ def verify_otp(request):
 
         else:
             request.session['otp_attempts'] = attempts + 1
-            messages.error(request, f"Invalid OTP {stored_otp} , {entered_otp}. ")
+            messages.error(request, f"Invalid OTP. ")
             return redirect("/verify-otp/")
         # Clear session data
 
 
     return render(request, "verify-otp.html")
-import random
-import datetime
-from django.utils import timezone
-from django.core.mail import send_mail
-from django.shortcuts import redirect
-from django.contrib import messages
+
 
 def resend_otp(request):
     data = request.session.get("signup_data") 
@@ -179,7 +185,7 @@ def resend_otp(request):
         fail_silently=False,
     )
 
-    messages.success(request, f"A new OTP has been sent to your email. {new_otp} ,"  )
+    messages.success(request, f"A new OTP has been sent to your email."  )
     return redirect("/verify-otp")
 
 def login_veiw(request):
@@ -193,11 +199,16 @@ def login_veiw(request):
                 messages.success(request,"done")
                 return HttpResponseRedirect("/student-dashboard")
             elif user.profile.role == "teacher":
+                # Check if the teacher is verified
+                if not user.profile.teacher.is_verified:
+                    messages.error(request, "Your account is not verified yet.")
+                    return HttpResponseRedirect("/login")
                 login(request, user)
                 return HttpResponseRedirect("/teacher-dashboard")
 
         else:
-            messages.error(request,"Invalid username or password!")
+            messages.error(request,f"Invalid username or password!")
+
             return HttpResponseRedirect("/login")
     return render(request, "login.html")
 def logout_view(request):
@@ -372,7 +383,7 @@ def add_video(request, course_id):
                     video_obj.url = url
                 video_obj.save()
                 messages.success(request, "Video added successfully!")
-                return redirect("teacher-dashboard/courses/" + str(course_id)+"/")
+                return redirect("/teacher-dashboard/course/" + str(course_id)+"/")
             return render(request, "upload_video.html", {"course": course})
         else:
             messages.error(request, "You are not authorized to access this page.")
@@ -406,6 +417,23 @@ def enroll_course(request, course_id):
                 messages.error(request, "You are already enrolled in this course!")
                 return redirect("/student-dashboard")
             course.students.add(profile.student)
+            course.save()
+            # Send confirmation email
+            send_mail(
+                "Course Enrollment Confirmation",
+                f"You have been successfully enrolled in {course.name}.",
+                from_email=" noreply@gmail.com   ",
+                recipient_list=[request.user.email],
+                fail_silently=False,
+            )
+            # Send Email to teacher
+            send_mail(
+                "New Student Enrollment",
+                f"{profile.user.username} has enrolled in your course {course.name}.",
+                from_email="noreply@gmail.com",
+                recipient_list=[course.teacher.profile.user.email],
+                fail_silently=False,
+            )
             messages.success(request, "Enrolled in course successfully!")
             return redirect("/student-dashboard")
         else:
@@ -478,6 +506,20 @@ def update_video(request, video_id,course_id):
     else:
         messages.error(request, "You need to log in first.")
         return redirect("/login")
-
+def student_course_detail(request, course_id):
+    if request.user.is_authenticated:
+        profile = Profile.objects.get(user=request.user)
+        
+        if profile.role == "student":
+            course = Courses.objects.get(id=course_id)
+            videos = video.objects.filter(course=course)
+            return render(request, "s_course_detail.html", {
+                'first_video': videos.first(),"course": course, "videos": videos})
+        else:
+            messages.error(request, "You are not authorized to access this page.")
+            return redirect("/")
+    else:
+        messages.error(request, "You need to log in first.")
+        return redirect("/login")
 
 

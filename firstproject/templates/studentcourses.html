@@ -28,7 +28,10 @@
                         <p class="text-muted">Posted: {{ course.created_at|date:"M d, Y" }}</p>
                     </div>
                     <div class="card-footer text-center">
-                        <a href="#" class="btn btn-primary btn-sm">Start Know</a>
+                        <a href="{% url 's_course_detail' course.id %}"
+                            class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-sm">
+                            Start Now
+                        </a>
                     </div>
                 </div>
             </div>
