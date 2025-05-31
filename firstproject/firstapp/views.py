@@ -1,11 +1,13 @@
 import datetime
-from django.shortcuts import redirect
+from django.conf import settings
+from django.shortcuts import get_object_or_404, redirect
 
 from django.shortcuts import render
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+import stripe
 
-from .models import Student ,Profile, Teacher, Courses, video
+from .models import Payment, ProgressTracker, Student ,Profile, Teacher, Courses, video
 
 from django.contrib import messages
 
@@ -14,6 +16,7 @@ from django.contrib.auth import logout,authenticate,login
 from django.contrib.auth.models import User
 
 import dns.resolver
+from django.views.decorators.csrf import csrf_exempt
 # Create your views here.
 from django.utils import timezone
 
@@ -306,14 +309,22 @@ def courses(request):
 
         profile = Profile.objects.get(user=request.user)
         if profile.role == "student":
-            courses = Courses.objects.all()
-            return render(request, "courses.html", {"courses": courses})
+            student = Student.objects.get(profile=profile) 
+            enrolled_courses = student.courses.all()
+            courses = Courses.objects.exclude(id__in=enrolled_courses.values_list('id', flat=True))
+            return render(request, "courses.html", {
+    "courses": courses,
+    "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY
+})
         elif profile.role == "teacher":
             return redirect("/teacher-dashboard/courses")
     else:
         messages.error(request, "You need to log in first.")
         return redirect("/login")
-    return render(request, "courses.html")
+    return render(request, "courses.html", {
+    "courses": courses,
+    "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY
+    })
 def create_course(request):
     if request.user.is_authenticated:
         teacher = request.user.profile.teacher
@@ -506,15 +517,31 @@ def update_video(request, video_id,course_id):
     else:
         messages.error(request, "You need to log in first.")
         return redirect("/login")
-def student_course_detail(request, course_id):
+def student_course_detail(request, course_id,video_id=None):
     if request.user.is_authenticated:
         profile = Profile.objects.get(user=request.user)
         
         if profile.role == "student":
             course = Courses.objects.get(id=course_id)
             videos = video.objects.filter(course=course)
+            student = Student.objects.get(profile=profile)
+
+            tracker, created = ProgressTracker.objects.get_or_create(student=student, course=course)
+
+            # Decide which video to play:
+            if video_id:
+                current_video = get_object_or_404(video, id=video_id, course=course)
+            elif tracker.last_video:
+                current_video = tracker.last_video
+            else:
+                current_video = videos.first()
+
+          
             return render(request, "s_course_detail.html", {
-                'first_video': videos.first(),"course": course, "videos": videos})
+                'course': course,
+                'videos': videos,
+                'first_video': current_video,
+                'progress_tracker': tracker, })
         else:
             messages.error(request, "You are not authorized to access this page.")
             return redirect("/")
@@ -523,3 +550,107 @@ def student_course_detail(request, course_id):
         return redirect("/login")
 
 
+def play_video(request,course_id, video_id):
+    if not request.user.is_authenticated:
+        messages.error(request, "You need to log in first.")
+        return redirect("/login")
+
+    profile = get_object_or_404(Profile, user=request.user)
+    
+    if profile.role != "student":
+        messages.error(request, "You are not authorized to access this page.")
+        return redirect("/")
+
+    student = get_object_or_404(Student, profile=profile)
+    video_obj = get_object_or_404(video, id=video_id)
+
+    tracker, created = ProgressTracker.objects.get_or_create(
+        student=student,
+        course=video_obj.course  
+    )
+
+    tracker.last_video = video_obj
+    tracker.watched_videos.add(video_obj)
+    total_videos = video.objects.filter(course=video_obj.course).count()
+    watched_count = tracker.watched_videos.count()
+    tracker.progress = round((watched_count / total_videos) * 100, 2) if total_videos else 0
+
+    tracker.save()
+    return redirect('s_course_detail_video', course_id=video_obj.course.id, video_id=video_obj.id)
+
+
+
+
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+@csrf_exempt
+def course_checkout(request, course_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Login required'}, status=401)
+
+    course = get_object_or_404(Courses, id=course_id)
+    student = get_object_or_404(Student, profile__user=request.user)
+
+    session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=[{
+            'price_data': {
+                'currency': 'usd',
+                'product_data': {'name': course.name},
+                'unit_amount': int(course.price * 100),
+            },
+            'quantity': 1,
+        }],
+        mode='payment',
+        metadata={
+            'course_id': str(course.id),
+            'student_id': str(student.id),
+        },
+        success_url=f"{settings.DOMAIN}/payment-success/?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{settings.DOMAIN}/payment-cancel/",
+    )
+
+    # Return the session id for frontend to redirect to Stripe checkout
+    return JsonResponse({'id': session.id})
+
+def payment_success(request):
+    session_id = request.GET.get('session_id')
+    if not session_id:
+        # handle error or redirect
+        return redirect('/')
+
+    session = stripe.checkout.Session.retrieve(session_id, expand=['payment_intent'])
+    payment_intent = session.payment_intent
+
+    # Get your metadata to find student and course
+    course_id = session.metadata.get('course_id')
+    student_id = session.metadata.get('student_id')
+
+    course = get_object_or_404(Courses, id=course_id)
+    student = get_object_or_404(Student, id=student_id)
+
+    # Check if payment already exists to avoid duplicates
+    payment, created = Payment.objects.get_or_create(
+        stripe_payment_intent=payment_intent.id,
+        defaults={
+            'student': student,
+            'course': course,
+            'amount': course.price,
+            'paid': True,
+        }
+    )
+
+    if not created:
+        payment.paid = True
+        payment.save()
+
+    # You can enroll the student in the course here or trigger other logic
+    # For example:
+    if not course.students.filter(id=student.id).exists():
+        course.students.add(student)
+
+    # Render a success template or redirect
+    return render(request, 'payment/success.html', {'session': session, 'course': course})
+
+def payment_cancel(request):
+    return render(request, 'payment/cancel.html')

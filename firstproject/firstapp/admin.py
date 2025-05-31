@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Profile, Student, Teacher
+from django.core.mail import send_mail as send_email
 # Register your models here.
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
@@ -29,14 +30,41 @@ class TeacherAdmin(admin.ModelAdmin):
 
     # Custom actions
     def verify_teacher(self, request, queryset):
-        queryset.update(is_verified=True)
+        for teacher in queryset:
+            if not teacher.is_verified:
+                teacher.is_verified = True
+                teacher.save()
+            send_email(
+                subject='Account Verification Confirmation',
+                message=f'Your account with username {teacher.profile.user.username} has been verified by our admin.',  
+                from_email="noreply@gmail.com",
+                recipient_list=[teacher.profile.user.email],
+                fail_silently=False,
+                )
     verify_teacher.short_description = "Verify selected teachers"
 
     def unverify_teacher(self, request, queryset):
-        queryset.update(is_verified=False)
+        for teacher in queryset:
+            if not teacher.is_verified:
+                teacher.is_verified = False
+                teacher.save()
+            send_email(
+                subject='Account Verification Confirmation',
+                message=f'Your account with username {teacher.profile.user.username} has been marked temporarily unverified by our admin.',  
+                from_email="noreply@gmail.com",
+                recipient_list=[teacher.profile.user.email],
+                fail_silently=False,
+                )        
     unverify_teacher.short_description = "Unverify selected teachers"
 
     def custom_delete(self, request, queryset):
         for teacher in queryset:
             teacher.delete()
+            send_email(
+                subject='Account Deletion Confirmation',
+                message=f'Your account with username {teacher.profile.user.username} has been deleted.',  
+                from_email="noreply@gmail.com",
+                recipient_list=[teacher.profile.user.email],
+                fail_silently=False,
+                )
     custom_delete.short_description = "Delete selected teachers"

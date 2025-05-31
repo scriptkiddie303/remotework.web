@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+<!-- {% extends 'base.html' %}
 {% load static %}
 
 {% block title %}
@@ -46,39 +46,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://js.stripe.com/v3/"></script>
-<script>
-    const stripe = Stripe("{{ STRIPE_PUBLISHABLE_KEY }}");
-    function handleCheckout(courseId) {
-        fetch(`/checkout/${courseId}/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify({})  // send some data if needed
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Failed to create checkout session");
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.id) {
-                    stripe.redirectToCheckout({ sessionId: data.id });
-                } else {
-                    alert("Error: " + (data.error || "Unknown error"));
-                }
-            })
-            .catch(error => {
-                alert("Network error: " + error.message);
-                console.error("Checkout error:", error);
-            });
-    }
-</script>
+<script src="{% static 'js/index.js' %}" defer></script>
 {% endblock %}
-
 
 {% block content %}
 <div class="container py-5">
@@ -108,11 +77,7 @@
                     <p class="text-muted">Posted: {{ course.created_at|date:"M d, Y" }}</p>
                 </div>
                 <div class="card-footer bg-white border-top-0 d-flex justify-content-between">
-                    {% if course.price == 0 %}
                     <a href="{% url 'enroll-course' course.id %}" class="btn btn-success btn-sm">Enroll</a>
-                    {% else %}
-                    <button onclick="handleCheckout('{{ course.id }}')" class="btn btn-primary btn-sm">Buy Now</button>
-                    {% endif %}
                     <a href="#" class="btn btn-outline-secondary btn-sm">Feedback</a>
                 </div>
             </div>
@@ -123,9 +88,8 @@
     <p class="text-center text-muted">No courses available at the moment.</p>
     {% endif %}
 </div>
-
 {% if messages %}
-<div class="container mt-4">
+<div class="container">
     {% for message in messages %}
     <div class="alert alert-info alert-dismissible fade show" role="alert">
         {{ message }}
@@ -134,4 +98,4 @@
     {% endfor %}
 </div>
 {% endif %}
-{% endblock %}
+{% endblock %} -->

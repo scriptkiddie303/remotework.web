@@ -143,3 +143,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'e.learning.quran.complex@gmail.com'
 EMAIL_HOST_PASSWORD = 'gpfuafzohrdgrtra'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# settings.py
+STRIPE_SECRET_KEY = 'sk_test_51RUiimB2W963yARB4J8shAFiAQxu5Ity6BuEgl6pexBruQKcEi05idNC0V5N5O8fpeBrrhDHIMKEyr8m8ujBygOM00asSF6Pfk'  # From your Stripe account
+STRIPE_PUBLISHABLE_KEY = 'pk_test_51RUiimB2W963yARBSOpJNnyBZlZWIt5VcPWDbkzBl0y5KZLRznQNVV6eUxQ38WsshPVx42CYbR3c9U7k3iXnPlaX00JsTAPOjs'
+DOMAIN = 'http://localhost:8000'  # Change if you're using a deployed version

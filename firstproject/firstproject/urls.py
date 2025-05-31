@@ -43,7 +43,15 @@ urlpatterns = [
     path('teacher-dashboard/course/<int:course_id>/deletevideo/<int:video_id>', views.delete_video, name='delete-video'),
     path('teacher-dashboard/course/<int:course_id>/editvideo/<int:video_id>', views.update_video, name='edit-video'),
     path('student-dashboard/courses/', views.student_courses ,name='student-courses'),
-    path('student-dashboard/courses/<int:course_id>/', views.student_course_detail, name='s_course_detail')
+    path('student-dashboard/courses/<int:course_id>/', views.student_course_detail, name='s_course_detail'),
+    
+    # Include video_id here to identify the video being played and tracked
+    path('student-dashboard/course/<int:course_id>/progress/<int:video_id>/', views.play_video, name='play_video'),
+    
+    path('student-dashboard/course/<int:course_id>/video/<int:video_id>/', views.student_course_detail, name='s_course_detail_video'),
+    path('checkout/<int:course_id>/', views.course_checkout, name='course-checkout'),
+    path('payment-success/', views.payment_success, name='payment-success'),
+    path('payment-cancel/', views.payment_cancel, name='payment-cancel'),
     # path('student-dashboard/course/<int:course_id>/', views.s_course_detail, name='s-course-detail'),
 ]
 

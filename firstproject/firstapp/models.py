@@ -91,3 +91,26 @@ class video(models.Model):
         if self.file:
             self.file.delete(save=False)
         super().delete(*args, **kwargs)
+class ProgressTracker(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Courses, on_delete=models.CASCADE)
+    last_video = models.ForeignKey(video, on_delete=models.SET_NULL, null=True, blank=True)  # <--- important    watched_videos = models.ManyToManyField(video, related_name='watched_by', blank=True)
+    watched_videos = models.ManyToManyField(video, related_name='watched_by', blank=True)
+
+    progress = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.student.profile.user.username} - {self.course.name} - {self.progress}%"
+
+class Payment(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Courses, on_delete=models.CASCADE)
+    stripe_payment_intent = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.profile.user.username} - {self.course.name} - {self.amount}"

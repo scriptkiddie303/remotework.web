@@ -7,6 +7,44 @@
 
 {% block styles %}
 <style>
+    .progress-circle-wrapper {
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px auto;
+}
+
+.progress-circle {
+    width: 100px;
+    height: 100px;
+    transform: rotate(-90deg);
+}
+
+.circle-bg {
+    fill: none;
+    stroke: #eee;
+    stroke-width: 4;
+}
+
+.circle {
+    fill: none;
+    stroke: #38a3a5;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.6s ease;
+}
+
+.percentage-text {
+    fill: #333;
+    font-size: 0.4em;
+    font-weight: bold;
+    text-anchor: middle;
+    dominant-baseline: central;
+    transform: rotate(90deg);
+}
+
     .video-container {
         display: flex;
         flex-wrap: wrap;
@@ -74,15 +112,38 @@
         <!-- Video List -->
         <div class="video-list">
             {% for vid in videos %}
-            <div class="video-item {% if vid.id == first_video.id %}active{% endif %}"
-                data-type="{% if vid.file %}file{% else %}url{% endif %}"
-                data-url="{{ vid.file.url|default_if_none:'' }}{{ vid.url|default_if_none:'' }}">
-                <strong>{{ forloop.counter }}. {{ vid.title }}</strong><br>
-                <small class="text-muted">{{ vid.description|truncatechars:60 }}</small>
-            </div>
+            <a href="{% url 'play_video' vid.course.id vid.id %}" style="text-decoration: none; color: inherit;">
+                <div class="video-item {% if vid.id == first_video.id %}active{% endif %}">
+                    <strong>{{ forloop.counter }}. {{ vid.title }}</strong><br>
+                    <small class="text-muted">{{ vid.description|truncatechars:60 }}</small>
+                </div>
+            </a>
+
             {% endfor %}
         </div>
     </div>
+{% if progress_tracker %}
+<div class="progress-circle-wrapper">
+    <svg class="progress-circle" viewBox="0 0 36 36">
+        <path class="circle-bg"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        <path class="circle"
+              stroke-dasharray="{{ progress_tracker.progress|default:0 }}, 100"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        <text x="18" y="20.35" class="percentage-text">
+            {{ progress_tracker.progress|default:0 }}%
+        </text>
+    </svg>
+</div>
+{% endif %}
+
+
+
+
 </div>
 
 <script>
