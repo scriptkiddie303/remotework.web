@@ -47,7 +47,7 @@
 
 {% block scripts %}
 <script src="https://js.stripe.com/v3/"></script>
-<script>
+<!-- <script>
     const stripe = Stripe("{{ STRIPE_PUBLISHABLE_KEY }}");
     function handleCheckout(courseId) {
         fetch(`/checkout/${courseId}/`, {
@@ -76,14 +76,61 @@
                 console.error("Checkout error:", error);
             });
     }
+</script> -->
+<script>
+    const stripe = Stripe("{{ STRIPE_PUBLISHABLE_KEY }}");
+
+    function handleCheckout(courseId) {
+        fetch(`/checkout/${courseId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({})
+        })
+            .then(async response => {
+                if (response.status === 401) {
+                    try {
+                        const data = await response.json();
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        } else {
+                            window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname);
+                        }
+                    } catch (e) {
+                        // JSON parse failed — fallback
+                        window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname);
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.id) {
+                    stripe.redirectToCheckout({ sessionId: data.id });
+                } else if (data.error) {
+                    alert("Error: " + data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Network error:", error);
+                alert("Network error: " + error.message);
+            });
+    }
+
+
 </script>
+
+
+
 {% endblock %}
 
 
 {% block content %}
 <div class="container py-5">
     <h2 class="mb-4 text-center">Available Courses</h2>
-
+    <p>4242424242424242</p>
     {% if courses %}
     <div class="row row-cols-1 row-cols-md-3 g-4">
         {% for course in courses %}
@@ -111,8 +158,10 @@
                     {% if course.price == 0 %}
                     <a href="{% url 'enroll-course' course.id %}" class="btn btn-success btn-sm">Enroll</a>
                     {% else %}
-                    <button onclick="handleCheckout('{{ course.id }}')" class="btn btn-primary btn-sm">Buy Now</button>
-                    {% endif %}
+                    <form action="{% url 'course-checkout' course.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">Buy Now</button>
+                    </form> {% endif %}
                     <a href="#" class="btn btn-outline-secondary btn-sm">Feedback</a>
                 </div>
             </div>

@@ -1,8 +1,46 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+<title>Payment Successful - Elearning Quran Complex</title>
+{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .success-container {
+        background-color: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        margin-top: 50px;
+    }
+
+    .success-icon {
+        font-size: 50px;
+        color: #28a745;
+        /* Bootstrap success color */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5 text-center">
-    <h2 class="text-success">Payment Successful!</h2>
-    <p>Thank you for enrolling in <strong>{{ course.name }}</strong>.</p>
-    <a href="{% url 'courses' %}" class="btn btn-primary mt-3">Back to Courses</a>
+<div class="container py-5">
+    <div class="success-container text-center">
+        <div class="mb-4">
+            <i class="bi bi-check-circle success-icon"></i> <!-- Bootstrap Icons -->
+        </div>
+        <h2 class="text-success">Payment Successful!</h2>
+        <p class="lead">Thank you for enrolling in <strong>{{ course.name }}</strong>.</p>
+        <p class="text-muted">You can now access your course materials and start learning.</p>
+        <div class="mt-4">
+            <a href="{% url 'student-dashboard' %}" class="btn btn-success btn-lg">Go to Dashboard</a>
+            <a href="{% url 'courses' %}" class="btn btn-primary btn-lg">Back to Courses</a>
+        </div>
+    </div>
 </div>
 {% endblock %}

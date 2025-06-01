@@ -1,10 +1,46 @@
 {% load static %}
 
 {% extends "base.html" %}
+{% block title %}
+<title>Payment Cancelled - Elearning Quran Complex</title>
+{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .cancel-container {
+        background-color: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        margin-top: 50px;
+    }
+
+    .cancel-icon {
+        font-size: 50px;
+        color: #dc3545;
+        /* Bootstrap danger color */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5 text-center">
-    <h2 class="text-success">Payment Cancelled.</h2>
-    <p>Thank you for enrolling in <strong>{{ course.name }}</strong>.</p>
-    <a href="{% url 'courses' %}" class="btn btn-primary mt-3">Back to Courses</a>
+<div class="container py-5">
+    <div class="cancel-container text-center">
+        <div class="mb-4">
+            <i class="bi bi-x-circle cancel-icon"></i> <!-- Bootstrap Icons -->
+        </div>
+        <h2 class="text-danger">Payment Cancelled</h2>
+        <p class="lead">Your payment for <strong>{{ course.name }}</strong> has been cancelled.</p>
+        <p class="text-muted">If you have any questions or need assistance, please contact support.</p>
+        <div class="mt-4">
+            <a href="{% url 'courses' %}" class="btn btn-primary btn-lg">Back to Courses</a>
+            <a href="{% url 'student-dashboard' %}" class="btn btn-success btn-lg">Go to Dashboard</a>
+        </div>
+    </div>
 </div>
 {% endblock %}

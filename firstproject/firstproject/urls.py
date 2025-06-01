@@ -24,6 +24,8 @@ urlpatterns = [
     path('', views.home ,name='home'), 
     path('about-us/', views.about_us ,name='about-us'),
     path('sign-up/', views.signup ,name='sign-up'),
+    path('update_profile/',views.update_profile,name='update-profile'),
+        path('change-password/', views.change_password, name='change_password'),
     path('verify-otp/', views.verify_otp, name='verify-otp'),
     path('resend-otp/', views.resend_otp, name='resend-otp'),
     path('login/', views.login_veiw ,name='login'),
@@ -46,13 +48,16 @@ urlpatterns = [
     path('student-dashboard/courses/<int:course_id>/', views.student_course_detail, name='s_course_detail'),
     
     # Include video_id here to identify the video being played and tracked
-    path('student-dashboard/course/<int:course_id>/progress/<int:video_id>/', views.play_video, name='play_video'),
+    path('student-dashboard/course/<int:course_id>/video/<int:video_id>/', views.play_video, name='play_video'),
     
     path('student-dashboard/course/<int:course_id>/video/<int:video_id>/', views.student_course_detail, name='s_course_detail_video'),
     path('checkout/<int:course_id>/', views.course_checkout, name='course-checkout'),
     path('payment-success/', views.payment_success, name='payment-success'),
     path('payment-cancel/', views.payment_cancel, name='payment-cancel'),
     # path('student-dashboard/course/<int:course_id>/', views.s_course_detail, name='s-course-detail'),
+    path('request-password-reset/', views.request_password_reset, name='request-password-reset'),
+    path('verify-reset-token/', views.verify_reset_token, name='verify-reset-token'),
+    path('reset-password', views.reset_password, name='reset-password'),
 ]
 
 

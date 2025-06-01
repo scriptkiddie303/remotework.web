@@ -1,10 +1,12 @@
 import datetime
+import mimetypes
 from django.conf import settings
 from django.shortcuts import get_object_or_404, redirect
 
 from django.shortcuts import render
 
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.urls import reverse
 import stripe
 
 from .models import Payment, ProgressTracker, Student ,Profile, Teacher, Courses, video
@@ -27,6 +29,10 @@ from django.core.mail import send_mail
 from django.shortcuts import redirect
 from django.contrib import messages
 
+from django.contrib.auth import update_session_auth_hash
+from django.core.files.storage import default_storage
+from django.utils.text import get_valid_filename
+from django.core.files import File
 def has_mx_record(domain):
     try:
         records = dns.resolver.resolve(domain, 'MX')
@@ -39,22 +45,33 @@ def home(request):
     return render(request, "index.html")
 
 def about_us(request):
-    return render(request, "about-us.html")
+    teachers=Profile.objects.filter(role='teacher')
+    return render(request, "about-us.html", {"teachers": teachers,})
 def signup(request):
-    role = request.GET.get("role")
+    role = request.GET.get("role") or request.POST.get("role")
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
         email = request.POST.get("email")
         phone = request.POST.get("phone")
-        request.session["signup_data"] = {
-            "username": username,
-            "password": password,
-            "email": email,
-            "phone": phone,
-            "role": role,
-        }
-        # Simple validation
+        confirm_password= request.POST.get("confirm_password")
+        profile_picture = request.FILES.get("profile_picture")
+        if role == "teacher":
+            cv = request.FILES.get("cv")
+            experience_years = request.POST.get("experience_years")
+            linkedin_url = request.POST.get("linkedin_url")
+            specializations = request.POST.get("specializations")
+            address = request.POST.get("address")
+            if not cv or not experience_years  or not specializations or not address or not profile_picture:
+                messages.error(request, "All fields are required for teacher registration except linkedin URL.")
+                return redirect("/sign-up?role=teacher")
+            if cv:
+                safe_cv_name = get_valid_filename(cv.name)
+                cv_path = default_storage.save(f'temp/cv_{username}_{safe_cv_name}', cv)
+        if profile_picture:
+          safe_profile_name = get_valid_filename(profile_picture.name)
+          profile_pic_path = default_storage.save(f'temp/profile_{username}_{safe_profile_name}', profile_picture)
+
         if not username or not email or not password or not role:
             messages.error(request, "All fields are required.")
             return redirect("/sign-up")
@@ -66,19 +83,61 @@ def signup(request):
         if User.objects.filter(email=email).exists():
             messages.error(request, "Email already in use.")
             return redirect("/sign-up")
-
-        import random
+        if Profile.objects.filter(phone=phone).exists():
+            messages.error(request,"Phone number already in use.")
+            return redirect("/sign-up")
+        if not has_mx_record(email.split('@')[1]):
+            messages.error(request, "Invalid email domain. Please use a valid email address.")
+            return redirect("/sign-up")
+        if len(password) < 8:
+            messages.error(request, "Password must be at least 8 characters long.")
+            return redirect("/sign-up")
+        if not any(char.isdigit() for char in password):
+            messages.error(request, "Password must contain at least one digit.")
+            return redirect("/sign-up")
+        if not any(char.isalpha() for char in password):
+            messages.error(request, "Password must contain at least one letter.")
+            return redirect("/sign-up")
+        if not any(char in "!@#$%^&*()-_=+[]{}|;:,.<>?/" for char in password):
+            messages.error(request, "Password must contain at least one special character.")
+            return redirect("/sign-up")
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match.")
+            return redirect("/sign-up")
         otp = str(random.randint(100000, 999999))
 
-        request.session["signup_data"] = {
+# Check profile picture is an image
+        if profile_picture:
+            profile_type, _ = mimetypes.guess_type(profile_picture.name)
+            if not profile_type or not profile_type.startswith('image'):
+                messages.error(request, "Profile picture must be an image file.")
+                return redirect("/sign-up?role=teacher")
+        if role == "teacher":
+          if cv:
+            cv_type, _ = mimetypes.guess_type(cv.name)
+            if cv_type != 'application/pdf':
+                messages.error(request, "CV must be a PDF file.")
+                return redirect("/sign-up?role=teacher")
+        # Check CV is a PDF
+
+       
+        if role=="teacher":
+
+             request.session["signup_data"] = {
+             "profile_picture":profile_pic_path,
             "username": username,
             "password": password,
             "email": email,
             "phone": phone,
             "role": role,
+            "cv":cv_path,
+            "experience_years":experience_years,
+            "linkedin_url":linkedin_url,
+            "specializations":specializations,
+            "address":address,
         }
         request.session['otp'] = otp
-        request.session['otp_expiry'] = (timezone.now() + datetime.timedelta(minutes=5)).isoformat()
+        request.session['otp_expiry'] = (timezone.now() + datetime.timedelta(minutes=1)).isoformat()
         request.session['otp_attempts'] = 0
         from django.core.mail import send_mail
         send_mail(
@@ -89,8 +148,15 @@ def signup(request):
             fail_silently=False
         )
         messages.success(request, f"OTP sent to your {otp} email.")
-        return redirect("/verify-otp")
-    return render(request, "sign-up.html",)
+        return redirect("/verify-otp/")
+    if role== "student":
+        return render(request, "student/sign_up.html", {"role": role})
+    elif role == "teacher":
+        return render(request, "teacher/sign_up.html", {"role": role})
+    else:
+        messages.error(request, "Invalid role selected.")
+        # Redirect to a default page or show an error
+        return redirect("/chooseRole")
 def verify_otp(request):
     if request.method == "POST":
         stored_otp = request.session.get("otp")
@@ -116,13 +182,14 @@ def verify_otp(request):
             )
             user.set_password(data['password'])
             user.save()
-
-            profile=Profile.objects.create(user=user, phone=data['phone'],role=data['role'])
+            profile_pic_file =default_storage.open(data['profile_picture'], 'rb')
+            cv_file = default_storage.open(data['cv'], 'rb')
+            profile=Profile.objects.create(user=user, phone=data['phone'],role=data['role'],profile_picture=File(profile_pic_file) if profile_pic_file else None, bio=data.get('bio', ''))
             if data['role'] == "student":
                 student = Student.objects.create(profile=profile)
                 student.save()
             elif data['role'] == "teacher":
-                teacher = Teacher.objects.create(profile=profile)
+                teacher = Teacher.objects.create(profile=profile,specialization=data['specializations'],cv=File(cv_file),experience_years=data['experience_years'],linkedin_url=data['linkedin_url'] if data.get('linkedin_url') else None,address=data['address'])
                 teacher.save()
                 admin=User.objects.get(username='admin')
                 send_mail(
@@ -191,6 +258,174 @@ def resend_otp(request):
     messages.success(request, f"A new OTP has been sent to your email."  )
     return redirect("/verify-otp")
 
+def update_profile(request):
+    if request.user.is_authenticated:
+        profile = Profile.objects.get(user=request.user)
+        if profile.role == "teacher":
+            teacher = Teacher.objects.get(profile=profile)
+        if request.method == "POST":
+            # Update bio if provided
+            bio = request.POST.get("bio")
+            if bio:
+                profile.bio = bio
+            
+            # Update phone if provided
+            phone = request.POST.get("phone")
+            if phone:
+                profile.phone = phone
+            
+            # Update profile picture if provided
+            profile_picture = request.FILES.get("profile_picture")
+            if profile_picture:
+                profile.profile_picture = profile_picture
+            
+            # Update other fields if provided
+            specialization = request.POST.get("specialization")
+            if specialization:
+                teacher.specialization = specialization
+            
+            experience_years = request.POST.get("experience_years")
+            if experience_years:
+                teacher.experience_years = experience_years
+            
+            linkedin_url = request.POST.get("linkedin_url")
+            if linkedin_url:
+                teacher.linkedin_url = linkedin_url
+            
+            address = request.POST.get("address")
+            if address:
+                teacher.address = address
+            
+            # Save the updated profile
+            if profile.role == "teacher":
+                            teacher.save()
+            profile.save()
+            messages.success(request, ("Profile updated successfully!"))
+            return redirect("/student-dashboard" if profile.role == "student" else "/teacher-dashboard")
+        
+        return render(request, "update_profile.html", {"profile": profile})
+    else:
+        messages.error(request, ("You need to log in first."))
+        return redirect("/login")
+
+
+def change_password(request):
+    if request.method == "POST":
+        old_password = request.POST.get("old_password")
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+
+        # Authenticate the user with the old password
+        user = authenticate(username=request.user.username, password=old_password)
+
+        if user is not None:
+            # Check if new passwords match
+            if new_password == confirm_password:
+                # Update the user's password
+                user.set_password(new_password)
+                user.save()
+                update_session_auth_hash(request, user)  # Important!
+                messages.success(request, "Your password has been changed successfully!")
+                profile= Profile.objects.get(user=request.user)
+                return redirect("/student-dashboard" if profile.role == "student" else "/teacher-dashboard")
+            else:
+                messages.error(request, "New passwords do not match.")
+        else:
+            messages.error(request, "Old password is incorrect.")
+
+    return render(request, "change_password.html")
+
+def request_password_reset(request):
+    if request.method == "POST":
+        email = request.POST.get("email")
+        request.session['reset_email'] = email
+        try:
+            user = User.objects.get(email=email)
+            # Generate a unique token for the password reset link
+            token = str(random.randint(100000, 999999))
+            request.session['reset_token'] = token
+            request.session['reset_email'] = email
+            request.session['reset_token_expiry'] = (timezone.now() + datetime.timedelta(minutes=15)).isoformat()
+            # Send email with the reset link
+            send_mail(
+                "Password Reset Request",
+                f"Your password reset token is: {token}. It is valid for 15 minutes.",
+                "noreply@yourdomain.com",
+                [email],
+                fail_silently=False,
+            )
+            messages.success(request, "A password reset token has been sent to your email.")
+            return redirect("/verify-reset-token")
+        except User.DoesNotExist:
+            messages.error(request, "No user found with this email address.")
+            return redirect("/request-password-reset")
+    return render(request, "request_password_reset.html")
+def verify_reset_token(request):
+    if request.method == "POST":
+        entered_token = request.POST.get("token")
+        stored_token = request.session.get("reset_token")
+        expiry = request.session.get("reset_token_expiry")
+
+        if not stored_token or not expiry:
+            messages.error(request, "Session expired. Please request a password reset again.")
+            return redirect("/request-password-reset")
+
+        # Check if the token is valid and not expired
+        if (timezone.now() > datetime.datetime.fromisoformat(expiry)):
+            messages.error(request, "Token expired. Please request a new password reset.")
+            return redirect("/request-password-reset")
+
+        if entered_token == stored_token:
+            return redirect("/reset-password")
+        else:
+            messages.error(request, "Invalid token. Please try again.")
+            return redirect("/verify-reset-token")
+
+    return render(request, "verify_reset_token.html")
+def reset_password(request):
+    if request.method == "POST":
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+        email = request.session.get("reset_email")
+
+        if not email:
+            messages.error(request, "Session expired. Please request a password reset again.")
+            return redirect("/request-password-reset")
+
+        if new_password != confirm_password:
+            messages.error(request, "Passwords do not match.")
+            return redirect("/reset-password")
+
+        # Validate password strength
+        if len(new_password) < 8:
+            messages.error(request, "Password must be at least 8 characters long.")
+            return redirect("/reset-password")
+        if not any(char.isdigit() for char in new_password):
+            messages.error(request, "Password must contain at least one digit.")
+            return redirect("/reset-password")
+        if not any(char.isalpha() for char in new_password):
+            messages.error(request, "Password must contain at least one letter.")
+            return redirect("/reset-password")
+        if not any(char in "!@#$%^&*()-_=+[]{}|;:,.<>?/" for char in new_password):
+            messages.error(request, "Password must contain at least one special character.")
+            return redirect("/reset-password")
+
+        try:
+            user = User.objects.get(email=email)
+            user.set_password(new_password)
+            user.save()
+            # Clear session data
+            for key in ['reset_token', 'reset_email', 'reset_token_expiry']:
+                if key in request.session:
+                    del request.session[key]
+            messages.success(request, "Password reset successfully! You can now log in with your new password.")
+            return redirect("/login")
+        except User.DoesNotExist:
+            messages.error(request, "No user found with this email address.")
+            return redirect("/request-password-reset")
+
+    return render(request, "reset_password.html")
+
 def login_veiw(request):
     if request.method == "POST":
         username = request.POST.get("username")
@@ -241,10 +476,13 @@ def contact_us(request):
 def teacher_dashboard(request):
     if request.user.is_authenticated:
         profile = Profile.objects.get(user=request.user)
-        
+        courses = Courses.objects.filter(teacher__profile=profile)
+
         if profile.role == "teacher":
             courses = Courses.objects.filter(teacher__profile=profile)
-            return render(request, "teacherDash.html", {"courses": courses})
+            return render(request, "teacher/dashboard.html", {"courses": courses,
+                                                              "total_course":courses.count(),
+                                                              "total_students": sum(course.students.count() for course in courses),})
         else:
             messages.error(request, "You are not authorized to access this page.")
             return redirect("/")
@@ -284,7 +522,8 @@ def student_dashboard(request):
         
         if profile.role == "student":
             courses = Courses.objects.filter(students__profile=profile)
-            return render(request, "studentDash.html", {"courses": courses})
+            return render(request, "student/dashboard.html", {"courses": courses,
+                                                              "enrolled_courses":courses.count(),})
         else:
             messages.error(request, "You are not authorized to access this page.")
             return redirect("/")
@@ -306,7 +545,15 @@ def student_courses(request):
         return redirect("/login")
 def courses(request):
     if request.user.is_authenticated:
+     if request.user.username == 'admin':
+        
+        courses = Courses.objects.all()
 
+        return render(request, "courses.html", {
+    "courses": courses,
+    "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY
+})
+     else:
         profile = Profile.objects.get(user=request.user)
         if profile.role == "student":
             student = Student.objects.get(profile=profile) 
@@ -318,9 +565,14 @@ def courses(request):
 })
         elif profile.role == "teacher":
             return redirect("/teacher-dashboard/courses")
-    else:
-        messages.error(request, "You need to log in first.")
-        return redirect("/login")
+        else:
+                  courses = Courses.objects.all()
+
+        return render(request, "courses.html", {
+    "courses": courses,
+    "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY
+})
+
     return render(request, "courses.html", {
     "courses": courses,
     "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY
@@ -581,16 +833,15 @@ def play_video(request,course_id, video_id):
 
 
 
-
 stripe.api_key = settings.STRIPE_SECRET_KEY
 @csrf_exempt
 def course_checkout(request, course_id):
     if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Login required'}, status=401)
-
+        messages=messages.error(request, "You need to log in first.")
+        login_url = reverse('login') + f"?next=/checkout/{course_id}/"
+        return redirect(login_url, messages=messages)
     course = get_object_or_404(Courses, id=course_id)
     student = get_object_or_404(Student, profile__user=request.user)
-
     session = stripe.checkout.Session.create(
         payment_method_types=['card'],
         line_items=[{
@@ -609,11 +860,11 @@ def course_checkout(request, course_id):
         success_url=f"{settings.DOMAIN}/payment-success/?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{settings.DOMAIN}/payment-cancel/",
     )
-
-    # Return the session id for frontend to redirect to Stripe checkout
-    return JsonResponse({'id': session.id})
+    return redirect(session.url)  
 
 def payment_success(request):
+    if not request.user.is_authenticated:
+        return redirect('/login')
     session_id = request.GET.get('session_id')
     if not session_id:
         # handle error or redirect

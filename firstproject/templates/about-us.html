@@ -7,6 +7,141 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'css/about-us.css' %}">
+<style>
+    body {
+        background-color: #f8f9fa;
+        font-family: Arial, sans-serif;
+    }
+
+    main {
+        padding: 20px;
+    }
+
+    /* Section: Intro */
+    .about-hero {
+        background: url("{% static 'images/about-hero-bg.jpg' %}") no-repeat center center/cover;
+        color: white;
+        padding: 60px 20px;
+        text-align: center;
+    }
+
+    .about-text h1 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+
+    .about-text p {
+        font-size: 1.2rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    /* Section: Welcome Message */
+    .about-welcome {
+        background-color: #ffffff;
+        padding: 40px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+    }
+
+    .welcome-container h2 {
+        font-size: 2rem;
+        margin-bottom: 20px;
+    }
+
+    .welcome-container p {
+        font-size: 1rem;
+        margin-bottom: 20px;
+    }
+
+    .welcome-image img {
+        max-width: 100%;
+        border-radius: 10px;
+    }
+
+    /* Section: Team Carousel */
+    .team-section {
+        text-align: center;
+        margin-top: 40px;
+    }
+
+    .carousel-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .carousel-btn {
+        background-color: transparent;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        color: #007bff;
+    }
+
+    .carousel-track {
+        display: flex;
+        overflow: hidden;
+        width: 80%;
+        margin: 0 auto;
+    }
+
+    .team-card {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 0 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+    .team-card:hover {
+        transform: scale(1.05);
+    }
+
+    /* Section: Icon Cards */
+    .icon-cards {
+        margin-top: 40px;
+        text-align: center;
+    }
+
+    .cards-container {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+    }
+
+    .card {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        width: 30%;
+        transition: transform 0.2s;
+    }
+
+    .card:hover {
+        transform: scale(1.05);
+    }
+
+    .card img {
+        max-width: 50px;
+        margin-bottom: 10px;
+    }
+
+    /* Colored Section */
+    .colored-message {
+        background-color: #007bff;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 10px;
+        margin-top: 40px;
+    }
+</style>
 {% endblock %}
 
 {% block scripts %}
@@ -49,34 +184,28 @@
             <button class="carousel-btn left">&#10094;</button>
             <div class="carousel-track">
                 <!-- Example Card -->
-                <div class="team-card" data-modal="team1">
-                    <img src="{% static 'images/team1.jpg' %}" alt="Team Member 1">
-                    <p>Ustadh Ahmad</p>
+                {% if teachers %}
+                {% for teacher in teachers %}
+                <div class="team-card" data-modal="{{ teacher.id }}">
+                    <p>{{ teacher.user.username }}</p>
+                    <!-- Add more cards as needed -->
                 </div>
-                <div class="team-card" data-modal="team2">
-                    <img src="{% static 'images/founder.jpg' %}" alt="Founder">
-                    <p>Founder - Fatima Noor</p>
-                </div>
-                <!-- Add more cards as needed -->
+                {% endfor %}
+                {% endif %}
             </div>
             <button class="carousel-btn right">&#10095;</button>
         </div>
 
         <!-- Modals -->
-        <div class="modal" id="team1">
+        {% for teacher in teachers %}
+        <div class="modal" id="team{{ teacher.id }}">
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h3>Ustadh Ahmad</h3>
-                <p>Lead Quran Instructor with over 10 years of experience in teaching Tajweed and Tafsir.</p>
+                <h3>{{ teacher.user.username }}</h3>
+                <p>{{ teacher.bio }}</p> <!-- Assuming you have a bio field -->
             </div>
         </div>
-        <div class="modal" id="team2">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h3>Fatima Noor</h3>
-                <p>Founder of Elearning Complex, passionate about merging Islamic education with modern skills.</p>
-            </div>
-        </div>
+        {% endfor %}
     </section>
 
     <!-- Section: Icon Cards -->

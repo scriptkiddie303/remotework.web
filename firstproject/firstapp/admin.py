@@ -1,16 +1,30 @@
+from traceback import format_tb
 from django.contrib import admin
 from .models import Profile, Student, Teacher
 from django.core.mail import send_mail as send_email
 # Register your models here.
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('get_phone', 'is_verified', 'experience_years', 'created_at', 'get_username', 'get_email', 'cv', 'specializations')
+    list_display = (
+        'get_phone',
+        'is_verified',
+        'experience_years',
+        'created_at',
+        'get_username',
+        'get_email',
+        'get_cv',
+        'get_specializations'
+    )
     search_fields = ('profile__user__username', 'profile__user__email')
     list_filter = ('is_verified', 'created_at')
     ordering = ('-created_at',)
     fieldsets = (
         (None, {
-            'fields': ('profile', 'cv', 'is_verified', 'experience_years', 'linkedin_url', 'specializations', 'address')
+            'fields': (
+                'profile', 'cv', 'is_verified',
+                'experience_years', 'linkedin_url',
+                'specializations', 'address'
+            )
         }),
     )
     actions = ['verify_teacher', 'unverify_teacher', 'custom_delete']
@@ -27,6 +41,19 @@ class TeacherAdmin(admin.ModelAdmin):
     def get_email(self, obj):
         return obj.profile.user.email
     get_email.short_description = "Email"
+
+    from django.utils.html import format_html
+
+    def get_cv(self, obj):
+        if obj.cv:
+            return format_tb('<a href="{}" target="_blank">View CV</a>', obj.cv.url)
+        return "No CV"
+    get_cv.short_description = "CV"
+
+    def get_specializations(self, obj):
+        return obj.specializations if obj.specializations else "None"
+    get_specializations.short_description = "Specializations"
+
 
     # Custom actions
     def verify_teacher(self, request, queryset):
