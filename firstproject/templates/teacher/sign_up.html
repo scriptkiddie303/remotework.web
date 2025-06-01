@@ -209,7 +209,7 @@
         <h2>Teacher Signup</h2>
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="hidden" name="role" value="teacher">
+            <input type="hidden" name="role" value="{{role}}">
 
             {% if messages %}
             {% for message in messages %}

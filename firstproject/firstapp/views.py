@@ -48,7 +48,7 @@ def about_us(request):
     teachers=Profile.objects.filter(role='teacher')
     return render(request, "about-us.html", {"teachers": teachers,})
 def signup(request):
-    role = request.GET.get("role") or request.POST.get("role")
+    role = request.GET.get("role") 
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
@@ -137,7 +137,7 @@ def signup(request):
             "address":address,
         }
         request.session['otp'] = otp
-        request.session['otp_expiry'] = (timezone.now() + datetime.timedelta(minutes=1)).isoformat()
+        request.session['otp_expiry'] = (timezone.now() + datetime.timedelta(minutes=5)).isoformat()
         request.session['otp_attempts'] = 0
         from django.core.mail import send_mail
         send_mail(
@@ -166,15 +166,15 @@ def verify_otp(request):
         attempts = request.session.get("otp_attempts", 0)
         if not data or not stored_otp:
             messages.error(request, "Session expired. Please sign up again.")
-            return redirect("/sign-up")
+            return redirect("/sign-up?role=" + data['role'])
         if attempts >= 5:
             messages.error(request, "Too many failed attempts. Try again.")
-            return redirect("/sign-up")
+            return redirect("/sign-up?role=" + data['role'])
 
         # Check expiry
         if (timezone.now() > datetime.datetime.fromisoformat(expiry)):
             messages.error(request, "OTP expired. Please register again.")
-            return redirect("/sign-up")
+            return redirect("/sign-up?role=" + data['role'])
         if entered_otp == stored_otp:
             user = User.objects.create_user(
                 username=data['username'],
