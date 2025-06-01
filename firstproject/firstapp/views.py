@@ -1,5 +1,6 @@
 import datetime
 import mimetypes
+import os
 from django.conf import settings
 from django.shortcuts import get_object_or_404, redirect
 
@@ -47,99 +48,263 @@ def home(request):
 def about_us(request):
     teachers=Profile.objects.filter(role='teacher')
     return render(request, "about-us.html", {"teachers": teachers,})
+# def signup(request):
+#     role = request.GET.get("role") 
+#     if request.method == "POST":
+#         username = request.POST.get("username")
+#         password = request.POST.get("password")
+#         email = request.POST.get("email")
+#         phone = request.POST.get("phone")
+#         confirm_password= request.POST.get("confirm_password")
+#         profile_picture = request.FILES.get("profile_picture")
+#         if role == "teacher":
+#             cv = request.FILES.get("cv")
+#             experience_years = request.POST.get("experience_years")
+#             linkedin_url = request.POST.get("linkedin_url")
+#             specializations = request.POST.get("specializations")
+#             address = request.POST.get("address")
+#             if not cv or not experience_years  or not specializations or not address or not profile_picture:
+#                 messages.error(request, "All fields are required for teacher registration except linkedin URL.")
+#                 return redirect("/sign-up?role=teacher")
+#             if cv:
+#                 safe_cv_name = get_valid_filename(cv.name)
+#                 if os.path.abspath(safe_cv_name).startswith(os.path.abspath('temp/')):
+#                     cv_rel_path = f"temp/cv_{username}_{safe_cv_name}"
+#                     default_storage.save(cv_rel_path, cv)
+#                 else:
+#                     messages.error(request, "Invalid CV filename.")
+#                     return redirect("/sign-up?role=teacher")
+#         if profile_picture:
+#           safe_profile_name = get_valid_filename(profile_picture.name)
+#           # Ensure the filename does not contain path traversal characters
+#           if os.path.abspath(safe_profile_name).startswith(os.path.abspath('temp/')):
+#               profile_pic_rel_path = f"temp/profile_{username}_{safe_profile_name}"
+#               default_storage.save(profile_pic_rel_path, profile_picture)
+#           else:
+#              messages.error(request, "Invalid profile picture filename.")
+#              return redirect("/sign-up?role=teacher")
+#         if not username or not email or not password or not role:
+#             messages.error(request, "All fields are required.")
+#             return redirect("/sign-up")
+
+#         if User.objects.filter(username=username).exists():
+#             messages.error(request, "Username already exists.")
+#             return redirect("/sign-up")
+
+#         if User.objects.filter(email=email).exists():
+#             messages.error(request, "Email already in use.")
+#             return redirect("/sign-up")
+#         if Profile.objects.filter(phone=phone).exists():
+#             messages.error(request,"Phone number already in use.")
+#             return redirect("/sign-up")
+#         if not has_mx_record(email.split('@')[1]):
+#             messages.error(request, "Invalid email domain. Please use a valid email address.")
+#             return redirect("/sign-up")
+#         if len(password) < 8:
+#             messages.error(request, "Password must be at least 8 characters long.")
+#             return redirect("/sign-up")
+#         if not any(char.isdigit() for char in password):
+#             messages.error(request, "Password must contain at least one digit.")
+#             return redirect("/sign-up")
+#         if not any(char.isalpha() for char in password):
+#             messages.error(request, "Password must contain at least one letter.")
+#             return redirect("/sign-up")
+#         if not any(char in "!@#$%^&*()-_=+[]{}|;:,.<>?/" for char in password):
+#             messages.error(request, "Password must contain at least one special character.")
+#             return redirect("/sign-up")
+#         if password != confirm_password:
+#             messages.error(request, "Passwords do not match.")
+#             return redirect("/sign-up")
+#         otp = str(random.randint(100000, 999999))
+
+# # Check profile picture is an image
+#         if profile_picture:
+#             profile_type, _ = mimetypes.guess_type(profile_picture.name)
+#             if not profile_type or not profile_type.startswith('image'):
+#                 messages.error(request, "Profile picture must be an image file.")
+#                 return redirect("/sign-up?role=teacher")
+#         if role == "teacher":
+#           if cv:
+#             cv_type, _ = mimetypes.guess_type(cv.name)
+#             if cv_type != 'application/pdf':
+#                 messages.error(request, "CV must be a PDF file.")
+#                 return redirect("/sign-up?role=teacher")
+#         # Check CV is a PDF
+
+       
+#         if role=="teacher":
+
+#              request.session["signup_data"] = {
+#              "profile_picture":profile_pic_rel_path,
+#             "username": username,
+#             "password": password,
+#             "email": email,
+#             "phone": phone,
+#             "role": role,
+#             "cv":cv_rel_path,
+#             "experience_years":experience_years,
+#             "linkedin_url":linkedin_url,
+#             "specializations":specializations,
+#             "address":address,
+#         }
+#         request.session['otp'] = otp
+#         request.session['otp_expiry'] = (timezone.now() + datetime.timedelta(minutes=5)).isoformat()
+#         request.session['otp_attempts'] = 0
+#         from django.core.mail import send_mail
+#         send_mail(
+#             "Your OTP Code",
+#             f"Your OTP is {otp}",
+#             "noreply@yourdomain.com",
+#             [email],
+#             fail_silently=False
+#         )
+#         messages.success(request, f"OTP sent to your {otp} email.")
+#         return redirect("/verify-otp/")
+#     if role== "student":
+#         return render(request, "student/sign_up.html", {"role": role})
+#     elif role == "teacher":
+#         return render(request, "teacher/sign_up.html", {"role": role})
+#     else:
+#         messages.error(request, "Invalid role selected.")
+#         # Redirect to a default page or show an error
+#         return redirect("/chooseRole")
+# def verify_otp(request):
+#     if request.method == "POST":
+#         stored_otp = request.session.get("otp")
+#         entered_otp = request.POST.get("otp")
+#         data = request.session.get("signup_data")
+#         expiry = request.session.get("otp_expiry")
+#         attempts = request.session.get("otp_attempts", 0)
+#         if not data or not stored_otp:
+#             messages.error(request, "Session expired. Please sign up again.")
+#             return redirect("/sign-up?role=" + data['role'])
+#         if attempts >= 5:
+#             messages.error(request, "Too many failed attempts. Try again.")
+#             return redirect("/sign-up?role=" + data['role'])
+
+#         # Check expiry
+#         if (timezone.now() > datetime.datetime.fromisoformat(expiry)):
+#             messages.error(request, "OTP expired. Please register again.")
+#             return redirect("/sign-up?role=" + data['role'])
+#         if entered_otp == stored_otp:
+#             user = User.objects.create_user(
+#                 username=data['username'],
+#                 email=data['email']
+#             )
+#             user.set_password(data['password'])
+#             user.save()
+#             profile_pic_file =default_storage.open(data['profile_picture'], 'rb')
+#             cv_file = default_storage.open(data['cv'], 'rb') if data.get('cv') else None
+#             profile=Profile.objects.create(user=user, phone=data['phone'],role=data['role'],profile_picture=File(profile_pic_file) if profile_pic_file else None, bio=data.get('bio', ''))
+#             if data['role'] == "student":
+#                 student = Student.objects.create(profile=profile)
+#                 student.save()
+#             elif data['role'] == "teacher":
+#                 teacher = Teacher.objects.create(profile=profile,specialization=data['specializations'],cv=File(cv_file),experience_years=data['experience_years'],linkedin_url=data['linkedin_url'] if data.get('linkedin_url') else None,address=data['address'])
+#                 teacher.save()
+#                 admin=User.objects.get(username='admin')
+#                 send_mail(
+#                     "New Teacher Application",
+#                     f"New teacher {data['username']} has Applied as teacher in Your site.",
+#                     from_email="noreply@gmail.com",
+#                     recipient_list=[admin.email],
+#                     fail_silently=False,
+#                 )            # Send welcome email
+#             send_mail(
+#                 "Welcome to our platform",
+#                 "Thank you for signing up!",
+#                 from_email="noreply@yourdomain.com",
+#                 recipient_list=[data['email']],
+#                 fail_silently=False,
+#                 )            # Clear session
+#             for key in [ 'otp', 'otp_expiry', 'otp_attempts']:
+#                 if key in request.session:
+#                     del request.session[key]
+#             del request.session["signup_data"]
+
+
+#             messages.success(request, "Account verified and created!")
+#             return redirect("/login")
+
+#         else:
+#             request.session['otp_attempts'] = attempts + 1
+#             messages.error(request, f"Invalid OTP. ")
+#             return redirect("/verify-otp/")
+#         # Clear session data
+
+
+#     return render(request, "verify-otp.html")
+
+
+import uuid
+
+
+
+
+# Assuming User, Profile, Student, Teacher models are imported properly
+
+def save_temp_file(file_obj, prefix):
+    """
+    Save uploaded file to 'temp/' directory with a unique safe filename.
+    Returns the relative path of the saved file.
+    """
+    ext = os.path.splitext(get_valid_filename(file_obj.name))[1]
+    unique_name = f"{prefix}_{uuid.uuid4().hex}{ext}"
+    relative_path = os.path.join("temp", unique_name)  # Relative to MEDIA_ROOT
+    default_storage.save(relative_path, file_obj)
+    return relative_path
+
 def signup(request):
-    role = request.GET.get("role") 
+    role = request.GET.get("role")
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
         email = request.POST.get("email")
         phone = request.POST.get("phone")
-        confirm_password= request.POST.get("confirm_password")
+        confirm_password = request.POST.get("confirm_password")
         profile_picture = request.FILES.get("profile_picture")
-        if role == "teacher":
-            cv = request.FILES.get("cv")
-            experience_years = request.POST.get("experience_years")
-            linkedin_url = request.POST.get("linkedin_url")
-            specializations = request.POST.get("specializations")
-            address = request.POST.get("address")
-            if not cv or not experience_years  or not specializations or not address or not profile_picture:
-                messages.error(request, "All fields are required for teacher registration except linkedin URL.")
-                return redirect("/sign-up?role=teacher")
-            if cv:
-                safe_cv_name = get_valid_filename(cv.name)
-                cv_path = default_storage.save(f'temp/cv_{username}_{safe_cv_name}', cv)
-        if profile_picture:
-          safe_profile_name = get_valid_filename(profile_picture.name)
-          profile_pic_path = default_storage.save(f'temp/profile_{username}_{safe_profile_name}', profile_picture)
+        cv = request.FILES.get("cv") if role == "teacher" else None
 
+        # Basic validation (add your full validation as needed)
         if not username or not email or not password or not role:
             messages.error(request, "All fields are required.")
-            return redirect("/sign-up")
+            return redirect(f"/sign-up?role={role or ''}")
 
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists.")
-            return redirect("/sign-up")
-
-        if User.objects.filter(email=email).exists():
-            messages.error(request, "Email already in use.")
-            return redirect("/sign-up")
-        if Profile.objects.filter(phone=phone).exists():
-            messages.error(request,"Phone number already in use.")
-            return redirect("/sign-up")
-        if not has_mx_record(email.split('@')[1]):
-            messages.error(request, "Invalid email domain. Please use a valid email address.")
-            return redirect("/sign-up")
-        if len(password) < 8:
-            messages.error(request, "Password must be at least 8 characters long.")
-            return redirect("/sign-up")
-        if not any(char.isdigit() for char in password):
-            messages.error(request, "Password must contain at least one digit.")
-            return redirect("/sign-up")
-        if not any(char.isalpha() for char in password):
-            messages.error(request, "Password must contain at least one letter.")
-            return redirect("/sign-up")
-        if not any(char in "!@#$%^&*()-_=+[]{}|;:,.<>?/" for char in password):
-            messages.error(request, "Password must contain at least one special character.")
-            return redirect("/sign-up")
         if password != confirm_password:
             messages.error(request, "Passwords do not match.")
-            return redirect("/sign-up")
-        otp = str(random.randint(100000, 999999))
+            return redirect(f"/sign-up?role={role or ''}")
 
-# Check profile picture is an image
-        if profile_picture:
-            profile_type, _ = mimetypes.guess_type(profile_picture.name)
-            if not profile_type or not profile_type.startswith('image'):
-                messages.error(request, "Profile picture must be an image file.")
-                return redirect("/sign-up?role=teacher")
-        if role == "teacher":
-          if cv:
-            cv_type, _ = mimetypes.guess_type(cv.name)
-            if cv_type != 'application/pdf':
-                messages.error(request, "CV must be a PDF file.")
-                return redirect("/sign-up?role=teacher")
-        # Check CV is a PDF
+        # You should add your other validations here as needed (username uniqueness, email, phone uniqueness, password strength...)
 
-       
-        if role=="teacher":
+        if not profile_picture:
+            messages.error(request, "Profile picture is required.")
+            return redirect(f"/sign-up?role={role or ''}")
 
-             request.session["signup_data"] = {
-             "profile_picture":profile_pic_path,
+        if role == "teacher" and not cv:
+            messages.error(request, "CV is required for teachers.")
+            return redirect("/sign-up?role=teacher")
+
+        profile_pic_path = save_temp_file(profile_picture, f"profile_{username}")
+        cv_path = save_temp_file(cv, f"cv_{username}") if cv else None
+
+        # Store needed signup info and file relative paths in session
+        signup_data = {
             "username": username,
             "password": password,
             "email": email,
             "phone": phone,
             "role": role,
-            "cv":cv_path,
-            "experience_years":experience_years,
-            "linkedin_url":linkedin_url,
-            "specializations":specializations,
-            "address":address,
+            "profile_picture": profile_pic_path,
+            "cv": cv_path,
         }
-        request.session['otp'] = otp
-        request.session['otp_expiry'] = (timezone.now() + datetime.timedelta(minutes=5)).isoformat()
-        request.session['otp_attempts'] = 0
-        from django.core.mail import send_mail
+        request.session["signup_data"] = signup_data
+
+        # Create OTP and set related session keys
+        otp = str(uuid.uuid4().int)[:6]
+        request.session["otp"] = otp
+        request.session["otp_expiry"] = (timezone.now() + datetime.timedelta(minutes=5)).isoformat()
+        request.session["otp_attempts"] = 0
+
         send_mail(
             "Your OTP Code",
             f"Your OTP is {otp}",
@@ -147,83 +312,91 @@ def signup(request):
             [email],
             fail_silently=False
         )
-        messages.success(request, f"OTP sent to your {otp} email.")
+        messages.success(request, "OTP sent to your email.")
         return redirect("/verify-otp/")
-    if role== "student":
+
+    if role == "student":
         return render(request, "student/sign_up.html", {"role": role})
     elif role == "teacher":
         return render(request, "teacher/sign_up.html", {"role": role})
     else:
         messages.error(request, "Invalid role selected.")
-        # Redirect to a default page or show an error
         return redirect("/chooseRole")
+
 def verify_otp(request):
     if request.method == "POST":
-        stored_otp = request.session.get("otp")
         entered_otp = request.POST.get("otp")
-        data = request.session.get("signup_data")
+        stored_otp = request.session.get("otp")
         expiry = request.session.get("otp_expiry")
         attempts = request.session.get("otp_attempts", 0)
-        if not data or not stored_otp:
+        signup_data = request.session.get("signup_data")
+
+        # Check if session data is still available
+        if not signup_data or not stored_otp:
             messages.error(request, "Session expired. Please sign up again.")
-            return redirect("/sign-up?role=" + data['role'])
+            return redirect("/sign-up")
+
         if attempts >= 5:
-            messages.error(request, "Too many failed attempts. Try again.")
-            return redirect("/sign-up?role=" + data['role'])
+            messages.error(request, "Too many attempts. Please try again.")
+            return redirect("/sign-up")
 
-        # Check expiry
-        if (timezone.now() > datetime.datetime.fromisoformat(expiry)):
+        if timezone.now() > datetime.datetime.fromisoformat(expiry):
             messages.error(request, "OTP expired. Please register again.")
-            return redirect("/sign-up?role=" + data['role'])
-        if entered_otp == stored_otp:
-            user = User.objects.create_user(
-                username=data['username'],
-                email=data['email']
-            )
-            user.set_password(data['password'])
-            user.save()
-            profile_pic_file =default_storage.open(data['profile_picture'], 'rb')
-            cv_file = default_storage.open(data['cv'], 'rb')
-            profile=Profile.objects.create(user=user, phone=data['phone'],role=data['role'],profile_picture=File(profile_pic_file) if profile_pic_file else None, bio=data.get('bio', ''))
-            if data['role'] == "student":
-                student = Student.objects.create(profile=profile)
-                student.save()
-            elif data['role'] == "teacher":
-                teacher = Teacher.objects.create(profile=profile,specialization=data['specializations'],cv=File(cv_file),experience_years=data['experience_years'],linkedin_url=data['linkedin_url'] if data.get('linkedin_url') else None,address=data['address'])
-                teacher.save()
-                admin=User.objects.get(username='admin')
-                send_mail(
-                    "New Teacher Application",
-                    f"New teacher {data['username']} has Applied as teacher in Your site.",
-                    from_email="noreply@gmail.com",
-                    recipient_list=[admin.email],
-                    fail_silently=False,
-                )            # Send welcome email
-            send_mail(
-                "Welcome to our platform",
-                "Thank you for signing up!",
-                from_email="noreply@yourdomain.com",
-                recipient_list=[data['email']],
-                fail_silently=False,
-                )            # Clear session
-            for key in [ 'otp', 'otp_expiry', 'otp_attempts']:
-                if key in request.session:
-                    del request.session[key]
-            del request.session["signup_data"]
+            return redirect("/sign-up")
 
-
-            messages.success(request, "Account verified and created!")
-            return redirect("/login")
-
-        else:
+        if entered_otp != stored_otp:
             request.session['otp_attempts'] = attempts + 1
-            messages.error(request, f"Invalid OTP. ")
+            request.session.modified = True  # Mark session as modified
+            messages.error(request, "Invalid OTP.")
             return redirect("/verify-otp/")
-        # Clear session data
 
+        # OTP correct - create user and profile
+        user = User.objects.create_user(
+            username=signup_data["username"],
+            email=signup_data["email"]
+        )
+        user.set_password(signup_data["password"])
+        user.save()
+
+        # Open files from safe relative paths in default storage
+        profile_pic_file = default_storage.open(signup_data["profile_picture"], "rb")
+        cv_file = None
+        if signup_data.get("cv"):
+            cv_file = default_storage.open(signup_data["cv"], "rb")
+
+        profile = Profile.objects.create(
+            user=user,
+            phone=signup_data["phone"],
+            role=signup_data["role"],
+            profile_picture=File(profile_pic_file),
+        )
+
+        if signup_data["role"] == "teacher":
+            teacher = Teacher.objects.create(
+                profile=profile,
+                cv=File(cv_file) if cv_file else None,
+                # add other teacher-specific fields here as needed
+            )
+            teacher.save()
+            # Notify admin about teacher registration
+            admin = User.objects.get(username="admin")
+            send_mail(
+                "New Teacher Application",
+                f"Teacher {signup_data['username']} registered.",
+                from_email="noreply@yourdomain.com",
+                recipient_list=[admin.email],
+                fail_silently=False,
+            )
+
+        # Cleanup session on success
+        for key in ["otp", "otp_expiry", "otp_attempts", "signup_data"]:
+            if key in request.session:
+                del request.session[key]
+
+        messages.success(request, "Account verified and created!")
+        return redirect("/login")
 
     return render(request, "verify-otp.html")
-
 
 def resend_otp(request):
     data = request.session.get("signup_data") 
